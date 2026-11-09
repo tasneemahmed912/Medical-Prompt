@@ -479,6 +479,8 @@ Each level must provide the information relevant to its scope while maintaining 
 
 Do not duplicate detailed analysis unnecessarily across levels. Use references to connect related information.
 
+Section 14 defines the exact JSON field names and enumeration values. If any field name or value mentioned in this section differs from Section 14, follow Section 14.
+
 DETAIL: 11.2. Claim-Level Output
 
 Provide an overall representation of the submitted medical claim, including:
@@ -558,12 +560,11 @@ D. Policy Assessment References
 - Missing Policy Information, when applicable.
 
 E. Item Recommendation
-Provide an independent recommendation for each item using one of the following statuses:
+Provide an independent recommendation for each item using one of the following statuses (defined in Section 14.10):
 
-- "RECOMMENDED_COVERED"
-- "RECOMMENDED_PARTIALLY_COVERED"
-- "RECOMMENDED_NOT_COVERED"
-- "NEEDS_HUMAN_REVIEW"
+- "OK"
+- "BLOCK"
+- "HR_REVIEW"
 
 Each recommendation must be associated with the relevant analysis findings and supporting evidence.
 
@@ -573,13 +574,13 @@ DETAIL: 11.5. Overall Recommendation
 
 Provide a consolidated recommendation for the entire claim based on the available item-level recommendations and relevant analysis findings.
 
-Use the following statuses:
+Use only the following statuses, as defined in Section 14.13:
 
-- "RECOMMENDED_COVERED": All assessed items have a covered recommendation, with no unresolved issue requiring a different overall outcome.
-- "RECOMMENDED_PARTIALLY_COVERED": The assessed claim contains covered and partially covered items, without a combination that requires a mixed recommendation.
-- "RECOMMENDED_NOT_COVERED": All assessed items have a not-covered recommendation, with no unresolved issue requiring human review.
-- "NEEDS_HUMAN_REVIEW": The claim contains unresolved issues that require human assessment before a reliable overall recommendation can be provided.
-- "MIXED_RECOMMENDATION": The claim contains materially different item-level recommendations that should not be represented by a single uniform outcome.
+- "OK": Recommended to accept.
+- "BLOCK": Recommended not to accept.
+- "HR_REVIEW": Requires human review.
+
+When items in the same claim have different recommendations (for example, some "OK" and some "BLOCK"), use "HR_REVIEW" for the claim and identify the affected items, as described in Section 14.13.
 
 The overall recommendation must preserve the differences between individual item recommendations.
 
@@ -612,8 +613,10 @@ Provide confidence assessments at both claim and item levels.
 
 Include:
 
-- "Overall_Confidence": Confidence in the overall claim analysis.
-- "Item_Confidence": Confidence in the analysis of each individual item.
+- "overall_confidence": Confidence in the overall claim analysis (in "overall_ai_recommendation").
+- "item_confidence": Confidence in the analysis of each individual item (in each record of "items").
+
+Use the confidence levels "HIGH", "MEDIUM", or "LOW".
 
 Confidence should reflect the reliability and completeness of the available information and the quality of the supporting evidence.
 
@@ -2106,6 +2109,12 @@ DETAIL: H. Item Preservation Rules
 - Do not invent missing dosages, quantities, prices, or medical purposes.
 - Do not discard an item simply because its medical purpose or policy status is unclear.
 
+DETAIL: I. Item Confidence
+
+Each item must include "item_confidence" with one of the values "HIGH", "MEDIUM", or "LOW".
+
+It reflects how reliably the item was read, identified, and analyzed. Lower it when the item is handwritten, partially readable, inferred from another document, or based on incomplete information.
+
 SUBSECTION: 14.11 – Issues and Review Recommendations
 
 The "issues_and_review_recommendations" array must contain the important problems, uncertainties, inconsistencies, and findings requiring attention.
@@ -2114,6 +2123,7 @@ Each issue must include:
 
 - "issue_id"
 - "issue_category"
+- "validation_code"
 - "severity"
 - "title"
 - "description"
@@ -2122,6 +2132,7 @@ Each issue must include:
 - "related_item_ids"
 - "supporting_evidence_ids"
 - "required_hr_action"
+- "confidence"
 
 Possible issue categories include:
 
@@ -2137,6 +2148,31 @@ Possible issue categories include:
 - "POTENTIAL_ANOMALY"
 - "POTENTIAL_FRAUD_INDICATOR"
 - "OTHER"
+
+Validation codes:
+
+"validation_code" identifies which validation rule from Section 6 raised the issue. Use exactly one of the following values:
+
+- "PATIENT_IDENTITY_MISMATCH"
+- "CATEGORY_MISMATCH"
+- "MISSING_PRESCRIPTION"
+- "ITEM_NOT_IN_PRESCRIPTION"
+- "SUBSTITUTE_MEDICATION"
+- "CLAIM_AMOUNT_MISMATCH"
+- "DUPLICATE_ITEM"
+- "DOCUMENT_DATE_OUTDATED"
+- "POSSIBLE_TAMPERING"
+- "MISSING_STAMP"
+- "IMAGE_UNCLEAR"
+- "MEDICAL_RELEVANCE_CONCERN"
+- "POLICY_EXCLUSION"
+- "POLICY_REVIEW_REQUIRED"
+
+Use null only when the issue does not come from any Section 6 validation rule. Never invent other validation codes.
+
+"issue_category" is the general category of the issue; "validation_code" is the specific validation rule. Both must be provided.
+
+"confidence" uses the values "HIGH", "MEDIUM", or "LOW".
 
 Severity levels:
 
@@ -2210,6 +2246,7 @@ It must include:
 - "recommendation_status"
 - "priority"
 - "recommendation_summary"
+- "overall_confidence"
 - "primary_reasons"
 - "related_issue_ids"
 - "related_item_ids"
